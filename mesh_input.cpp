@@ -2,12 +2,16 @@
 //Ethan Goff (with support from Emma Roudabush), April 2014
 
 #include "mesh_input.h"
-#include "mesh_node.h"
+
+//Standard C libraries used
 #include <stdlib.h>
-#define ELEMENT_TYPE_OFFSET 16
+#include <string.h>
+
 #define OUTPUT_FILE_POSTFIX "_out"
 #define INPUT_FILE_NAME "notchedcrack"
 #define INPUT_FILE_EXTENSION ".inp"
+
+#define ELEMENT_TYPE_OFFSET 16
 #define LINE_BUFFER_SIZE 200
 #define BASE 10
 
@@ -15,6 +19,7 @@ map <uint16_t, bool> mesh_input::EncounteredNodesTable;
 map <pair<uint16_t, uint16_t>, bool> mesh_input::EncounteredElementsTable;
 vector < vector<uint16_t> > mesh_input::cohesiveElements;
 
+char* itoa(int num, char* str, int base);
 
 
 mesh_input::mesh_input()
