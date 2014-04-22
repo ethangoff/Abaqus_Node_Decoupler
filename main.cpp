@@ -1,10 +1,12 @@
 //Abaqus Node Decoupler - main routine
 //Ethan Goff, April 2014
 
-#include <map>
 #include "mesh_input.h"
+#include "compilation_options.h"
 
 using namespace std;
+
+#define VERBOSE
 
 //We want to read in the data from a file, and find any shared edges, creating a new edge
 //	node to replace the match's edge, decoupling the two elements.

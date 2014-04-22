@@ -3,6 +3,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <vector>
 #include <map>
 #include <stdint.h>
 using namespace std;
@@ -41,11 +42,20 @@ class mesh_input
 
 		fstream elementsOutput;
 
-		//Our map will have integer keys which correspond with
+		//Our nodes map will have integer keys which correspond with
 		//	boolean values. As we add nodes, we'll set the boolean
 		//	to true, which will allow us to quickly later see if a node
 		//  has been encountered in the past.
 		static map <uint16_t, bool> EncounteredNodesTable;
+
+		//Our nodes map will have integer keys which correspond with
+		//	boolean values. As we add nodes, we'll set the boolean
+		//	to true, which will allow us to quickly later see if a node
+		//  has been encountered in the past.
+		static map <pair<uint16_t, uint16_t>, bool> EncounteredElementsTable;
+
+		static vector < vector<uint16_t> > cohesiveElements;
+
 
 };
 

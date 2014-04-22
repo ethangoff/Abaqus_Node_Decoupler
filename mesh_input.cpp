@@ -12,6 +12,10 @@
 #define BASE 10
 
 map <uint16_t, bool> mesh_input::EncounteredNodesTable;
+map <pair<uint16_t, uint16_t>, bool> mesh_input::EncounteredElementsTable;
+vector < vector<uint16_t> > mesh_input::cohesiveElements;
+
+
 
 mesh_input::mesh_input()
 {
@@ -29,7 +33,21 @@ mesh_input::~mesh_input()
 //Closes both the input and output files
 void mesh_input::CloseFiles()
 {
-	//Close the files
+	#ifdef VERBOSE
+	//Inspect Dupes
+	for( vector< vector<uint16_t> >::iterator i = cohesiveElements.begin(); i != cohesiveElements.end(); ++i)
+	{
+		cout << "Cohesive Element contains the following nodes: ";
+		for(vector<uint16_t>::iterator j = (*i).begin(); j != (*i).end(); ++j)
+		{
+			cout << *j << ", ";
+		}
+		cout << endl;
+	}
+	#endif // VERBOSE
+
+
+    //Close the files
 	inputFile.close();
 	outputFile.close();
 	outputFile.close();
@@ -263,13 +281,18 @@ void mesh_input::ProcessElement(char* inputElementString, int numberOfNodes, cha
 {
 	char* token;
 	char output[10];
-	int i = 0;
 	const char delim[2] = ",";
 	uint16_t number, newNode;
+	uint16_t originalNodesList[3];
+	uint16_t newNodesList[3];
 
 	token = strtok(inputElementString, delim);
 
-	while(token != NULL)
+#ifdef VERBOSE
+	cout << "Working on Element: " << inputElementString << endl;
+#endif // VERBOSE
+
+	for(int i = 0; token != NULL ; i++)
 	{
 		if (i == 0) // it is the first element and therefore the first number
 		{
@@ -279,6 +302,8 @@ void mesh_input::ProcessElement(char* inputElementString, int numberOfNodes, cha
 		{
 			//Evaluate the next node within the current element.
 			number = (uint16_t)atoi(token);
+			originalNodesList[i-1] = number;
+
 
 			//If the node	has been encountered, currentNodeIsRedundant will point
             //  to a TRUE value. If not, it will point to a FALSE value, which is the
@@ -292,6 +317,7 @@ void mesh_input::ProcessElement(char* inputElementString, int numberOfNodes, cha
 				EncounteredNodesTable[number] = true;
 				strcat(outputElementString, ", ");
 				strcat(outputElementString, token);
+				newNodesList[i-1] = number;
 			}
             //In the case that  a node has already been encountered, duplicate it.
             //  Add the number of the new, duplicated node to the output
@@ -302,9 +328,52 @@ void mesh_input::ProcessElement(char* inputElementString, int numberOfNodes, cha
 				itoa(newNode, output, BASE);
 				strcat(outputElementString, ", ");
 				strcat(outputElementString, output);
+				newNodesList[i-1] = newNode;
+
 			}
 		}
-		i++;
 		token = strtok(NULL, delim);
 	}
+
+#ifdef VERBOSE
+	cout << "original nodes list: ";
+	for(int i=0; i<3;i++)
+	{
+		cout << originalNodesList[i] << ' ';
+	}
+	cout << endl;
+	cout << "new nodes list:      ";
+	for(int i=0; i<3;i++)
+	{
+		cout << newNodesList[i] << ' ';
+	}
+	cout << endl;
+	cout << endl;
+
+#endif // VERBOSE
+
+
+	//Find the edges of the element - at the moment, this assumes linearity and 2 dimensions
+	for(int i = 0; i<numberOfNodes-1; i++)
+	{
+		for(int j =i+1; j<numberOfNodes; j++)
+		{
+			pair<uint16_t, uint16_t> newPair = make_pair( originalNodesList[i], originalNodesList[j] ) ;
+			if( !EncounteredElementsTable[newPair])
+				EncounteredElementsTable[newPair] = true;
+			else
+			{
+				//Create a cohesive element for later
+				//Our cohesive element will contain originalNodesList[i], originalNodesList[j], newNodesList[i], and newNodesList[j]
+				vector<uint16_t> newCohesiveElement;
+				newCohesiveElement.push_back( (originalNodesList[i]) );
+				newCohesiveElement.push_back( originalNodesList[j] );
+				newCohesiveElement.push_back( newNodesList[i] );
+				newCohesiveElement.push_back( newNodesList[j] );
+				cohesiveElements.push_back(newCohesiveElement);
+			}
+		}
+	}
+
 }
+
