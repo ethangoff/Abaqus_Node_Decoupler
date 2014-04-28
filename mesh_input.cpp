@@ -15,7 +15,7 @@
 #define LINE_BUFFER_SIZE 200
 #define BASE 10
 
-map <uint16_t, bool> mesh_input::EncounteredNodesTable;
+unordered_map <uint16_t, bool> mesh_input::EncounteredNodesTable;
 map <pair<uint16_t, uint16_t>, bool> mesh_input::EncounteredElementsTable;
 vector < vector<uint16_t> > mesh_input::cohesiveElements;
 
@@ -24,6 +24,7 @@ char* itoa(int num, char* str, int base);
 
 mesh_input::mesh_input()
 {
+        elementsRead = 0;
 		numberOfNodes = 0;
 	    positionOfNodesInInputFile = 0;
 		positionOfFirstElementInInputFile = 0;
@@ -225,7 +226,6 @@ void mesh_input::ParseElements()
     char currentLine[LINE_BUFFER_SIZE] = "";
 	inputFile.getline(currentLine, LINE_BUFFER_SIZE);
     uint8_t nodesPerElement = 0;
-	uint16_t elementsRead = 0;
 
 	//Read through the elements list, processing and outputing each
 	while( (inputFile.rdstate() & std::ifstream::eofbit ) != 1 )
@@ -236,9 +236,20 @@ void mesh_input::ParseElements()
 		{
 				if(currentLine[3] == 's') // "*ELS..."
 				{
-					elementsOutput << currentLine << endl;
+                    //Before copying the remainder of the mesh input file,
+                    //  write the cohesive elements out to the temporary
+                    WriteCohesiveElements();
+                    //Copy the elset and the subsequent line
+                    elementsOutput << "*Elset, elset=BULK, generate\n";
+                    elementsOutput << "1, " << firstCohesiveElement-1 << ", 1\n";
+                    //Copy the elset and the subsequent line
+                    elementsOutput << "*Elset, elset=COHES, generate\n";
+                    elementsOutput << firstCohesiveElement << ", " << lastCohesiveElement << ", 1\n";
+
 					elementsRead++;
-					CopyElementsFromTemporary(elementsRead);
+					CopyElementsFromTemporary(elementsRead+cohesiveElements.size()+3);
+
+
 					CopyPostlude();
 					return;
 				}
@@ -382,3 +393,22 @@ void mesh_input::ProcessElement(char* inputElementString, int numberOfNodes, cha
 
 }
 
+void mesh_input::WriteCohesiveElements()
+{
+    firstCohesiveElement = elementsRead;
+    elementsOutput << "*Element, type=COH2D4\n";
+    int numberOfCohesiveElements = cohesiveElements.size();
+    lastCohesiveElement = elementsRead + numberOfCohesiveElements - 1;
+    for(int i=0; i<numberOfCohesiveElements; i++)
+    {
+        elementsOutput << elementsRead+i << ", ";
+        for(int j=0; j<3; j++)
+        {
+            elementsOutput << (cohesiveElements[i])[j] << ", ";
+        }
+        elementsOutput << (cohesiveElements[i])[3];
+        elementsOutput.put('\n');
+    }
+
+
+}

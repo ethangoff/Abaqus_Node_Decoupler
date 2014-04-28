@@ -4,6 +4,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <unordered_map>
 #include <map>
 #include <stdint.h>
 using namespace std;
@@ -31,9 +32,15 @@ class mesh_input
 		void CopyPostlude();
 		uint16_t DuplicateNode(uint16_t nodeNumber);
 		void ProcessElement(char* inputElementString, int numberOfNodes, char* outputElementString);
+        void WriteCohesiveElements();
+
+
 
 		fstream inputFile;
 		uint16_t numberOfNodes;
+		uint16_t elementsRead;
+        uint16_t firstCohesiveElement;
+        uint16_t lastCohesiveElement;
 	    streampos positionOfNodesInInputFile;
 		streampos positionOfFirstElementInInputFile;
 
@@ -46,7 +53,7 @@ class mesh_input
 		//	boolean values. As we add nodes, we'll set the boolean
 		//	to true, which will allow us to quickly later see if a node
 		//  has been encountered in the past.
-		static map <uint16_t, bool> EncounteredNodesTable;
+		static unordered_map <uint16_t, bool> EncounteredNodesTable;
 
 		//Our nodes map will have integer keys which correspond with
 		//	boolean values. As we add nodes, we'll set the boolean
