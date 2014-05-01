@@ -15,7 +15,7 @@
 #define LINE_BUFFER_SIZE 200
 #define BASE 10
 
-unordered_map <uint16_t, bool> mesh_input::EncounteredNodesTable;
+unordered_map <uint16_t, uint16_t> mesh_input::EncounteredNodesTable;
 map <pair<uint16_t, uint16_t>, bool> mesh_input::EncounteredElementsTable;
 vector < vector<uint16_t> > mesh_input::cohesiveElements;
 
@@ -30,7 +30,7 @@ mesh_input::mesh_input()
 		positionOfFirstElementInInputFile = 0;
 		positionToAppendNodesInOutputFile =0;
 }
-
+a
 mesh_input::~mesh_input()
 {
 	//dtor
@@ -326,21 +326,22 @@ void mesh_input::ProcessElement(char* inputElementString, int numberOfNodes, cha
             //	default value for a bool type (our table's value type).
 
             //In the case that  a node hasn't been encountered, add it to the table
-            //	with a value of true. Add the number back unchanged to the output
+            //	with a value of itself. Add the number back unchanged to the output
             //	element string.
 			if( !EncounteredNodesTable[number])
 			{
-				EncounteredNodesTable[number] = true;
+				EncounteredNodesTable[number] = number;
 				strcat(outputElementString, ", ");
 				strcat(outputElementString, token);
 				newNodesList[i-1] = number;
 			}
             //In the case that  a node has already been encountered, duplicate it.
-            //  Add the number of the new, duplicated node to the output
-            //	element string.
+            //  Replace the node in the map to be the duplicate. Add the number of
+            // the new, duplicated node to the output element string.
 			else
 			{
 				newNode = DuplicateNode(number);
+				EncounteredNodesTable[number] = newNode;
 				itoa(newNode, output, BASE);
 				strcat(outputElementString, ", ");
 				strcat(outputElementString, output);

@@ -50,10 +50,9 @@ class mesh_input
 		fstream elementsOutput;
 
 		//Our nodes map will have integer keys which correspond with
-		//	boolean values. As we add nodes, we'll set the boolean
-		//	to true, which will allow us to quickly later see if a node
-		//  has been encountered in the past.
-		static unordered_map <uint16_t, bool> EncounteredNodesTable;
+		//	int values. As we add nodes, we'll set the int to the latest
+		//	duplicate created of that node.
+		static unordered_map <uint16_t, uint16_t> EncounteredNodesTable;
 
 		//Our nodes map will have integer keys which correspond with
 		//	boolean values. As we add nodes, we'll set the boolean
