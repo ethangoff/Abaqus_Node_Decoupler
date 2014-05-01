@@ -30,7 +30,7 @@ mesh_input::mesh_input()
 		positionOfFirstElementInInputFile = 0;
 		positionToAppendNodesInOutputFile =0;
 }
-a
+
 mesh_input::~mesh_input()
 {
 	//dtor
@@ -135,11 +135,9 @@ void mesh_input::CopyPostlude()
 {
 	char currentLine[LINE_BUFFER_SIZE] = "";
 	int test = 0;
+	inputFile.getline(currentLine, LINE_BUFFER_SIZE);
 	while( strncmp(currentLine, "*End Step", 7) != 0 )
 	{
-		test++;
-		if(test >84)
-			test=0;
 		inputFile.getline(currentLine, LINE_BUFFER_SIZE);
 		outputFile << currentLine << endl;
 	}
@@ -246,8 +244,10 @@ void mesh_input::ParseElements()
                     elementsOutput << "*Elset, elset=COHES, generate\n";
                     elementsOutput << firstCohesiveElement << ", " << lastCohesiveElement << ", 1\n";
 
+                    cout << firstCohesiveElement << ", " << lastCohesiveElement << ", 1\n";
+
 					elementsRead++;
-					CopyElementsFromTemporary(elementsRead+cohesiveElements.size()+3);
+					CopyElementsFromTemporary(elementsRead+cohesiveElements.size()+4);
 
 
 					CopyPostlude();
