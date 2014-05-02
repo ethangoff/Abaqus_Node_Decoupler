@@ -7,19 +7,50 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <algorithm>
+
 #define OUTPUT_FILE_POSTFIX "_out"
-#define INPUT_FILE_NAME "notchedcrack"
+#define INPUT_FILE_NAME "basic_pre"
 #define INPUT_FILE_EXTENSION ".inp"
 
 #define ELEMENT_TYPE_OFFSET 16
 #define LINE_BUFFER_SIZE 200
 #define BASE 10
+#define NUMBER_OF_POSSIBLE_EDGES 3
+#define NODE_COUNT_PER_ELEMENT 3
+
+#define VERBOSE 3
 
 unordered_map <uint16_t, uint16_t> mesh_input::EncounteredNodesTable;
 map <pair<uint16_t, uint16_t>, bool> mesh_input::EncounteredElementsTable;
 vector < vector<uint16_t> > mesh_input::cohesiveElements;
 
 char* itoa(int num, char* str, int base);
+
+
+void swap_long_u(uint32_t * a, uint32_t * b)
+{
+    uint32_t tmp = *a;
+    *a = *b;
+    *b = tmp;
+}
+
+
+void CreateEdges( uint32_t * nodes, vector< pair<uint32_t,uint32_t> > * edges )
+{
+    //Sort nodes
+    for(int i=0; i < NODE_COUNT_PER_ELEMENT; i++)
+        for(int j=i+1; j < NODE_COUNT_PER_ELEMENT; j++)
+            if( nodes[j] > nodes[i])
+                swap_long_u(nodes+j, nodes+i);
+
+    //Create edges
+    for(int i=0; i < NODE_COUNT_PER_ELEMENT; i++)
+        for(int j=i+1; j < NODE_COUNT_PER_ELEMENT; j++)
+            edges->push_back( make_pair(nodes[i], nodes[j]) );
+}
+
+
 
 
 mesh_input::mesh_input()
@@ -298,9 +329,10 @@ void mesh_input::ProcessElement(char* inputElementString, int numberOfNodes, cha
 	char* token;
 	char output[10];
 	const char delim[2] = ",";
-	uint16_t number, newNode;
-	uint16_t originalNodesList[3];
-	uint16_t newNodesList[3];
+	uint32_t number, newNode;
+	uint32_t originalNodesList[NUMBER_OF_POSSIBLE_EDGES];
+	uint32_t newNodesList[NUMBER_OF_POSSIBLE_EDGES];
+	uint32_t cohesiveNodes[NUMBER_OF_POSSIBLE_EDGES];
 
 	token = strtok(inputElementString, delim);
 
@@ -318,7 +350,7 @@ void mesh_input::ProcessElement(char* inputElementString, int numberOfNodes, cha
 		{
 			//Evaluate the next node within the current element.
 			number = (uint16_t)atoi(token);
-			originalNodesList[i-1] = number;
+            originalNodesList[i-1] = number;
 
 
 			//If the node	has been encountered, currentNodeIsRedundant will point
@@ -333,20 +365,23 @@ void mesh_input::ProcessElement(char* inputElementString, int numberOfNodes, cha
 				EncounteredNodesTable[number] = number;
 				strcat(outputElementString, ", ");
 				strcat(outputElementString, token);
-				newNodesList[i-1] = number;
 			}
             //In the case that  a node has already been encountered, duplicate it.
             //  Replace the node in the map to be the duplicate. Add the number of
             // the new, duplicated node to the output element string.
 			else
 			{
+                //Preserve the old node number in case it is part of a shared edge
+				cohesiveNodes[i-1] = EncounteredNodesTable[number];
+
 				newNode = DuplicateNode(number);
 				EncounteredNodesTable[number] = newNode;
+
+                newNodesList[i-1] = EncounteredNodesTable[number];
+
 				itoa(newNode, output, BASE);
 				strcat(outputElementString, ", ");
 				strcat(outputElementString, output);
-				newNodesList[i-1] = newNode;
-
 			}
 		}
 		token = strtok(NULL, delim);
@@ -360,9 +395,15 @@ void mesh_input::ProcessElement(char* inputElementString, int numberOfNodes, cha
 	}
 	cout << endl;
 	cout << "new nodes list:      ";
-	for(int i=0; i<3;i++)
+	for(int i=0; i<2;i++)
 	{
 		cout << newNodesList[i] << ' ';
+	}
+	cout << endl;
+	cout << "cohesive nodes list:      ";
+	for(int i=0; i<2;i++)
+	{
+		cout << cohesiveNodes[i] << ' ';
 	}
 	cout << endl;
 	cout << endl;
@@ -371,28 +412,35 @@ void mesh_input::ProcessElement(char* inputElementString, int numberOfNodes, cha
 
 
 	//Find the edges of the element - at the moment, this assumes linearity and 2 dimensions
-	for(int i = 0; i<numberOfNodes-1; i++)
-	{
-		for(int j =i+1; j<numberOfNodes; j++)
-		{
-			pair<uint16_t, uint16_t> newPair = make_pair( originalNodesList[i], originalNodesList[j] ) ;
-			if( !EncounteredElementsTable[newPair])
-				EncounteredElementsTable[newPair] = true;
-			else
-			{
-				//Create a cohesive element for later
-				//Our cohesive element will contain originalNodesList[i], originalNodesList[j], newNodesList[i], and newNodesList[j]
-				vector<uint16_t> newCohesiveElement;
-				newCohesiveElement.push_back( (originalNodesList[i]) );
-				newCohesiveElement.push_back( originalNodesList[j] );
-				newCohesiveElement.push_back( newNodesList[i] );
-				newCohesiveElement.push_back( newNodesList[j] );
-				cohesiveElements.push_back(newCohesiveElement);
-			}
+    vector< pair<uint32_t, uint32_t> > edges;
+    edges.reserve( NUMBER_OF_POSSIBLE_EDGES );
+    CreateEdges(originalNodesList, &edges);
+
+    //Check for shared edges in the element, creating cohesive elements
+    for(int i=0; i<NUMBER_OF_POSSIBLE_EDGES; i++)
+    {
+        //If we haven't encoutered this edge before, make note of it
+        if( !EncounteredElementsTable[ edges[i] ] )
+            EncounteredElementsTable[ edges[i] ] = true;
+        else    //If we have encountered the edge, create a new cohesive element
+        {
+            //Create a cohesive element for later
+            vector<uint16_t> newCohesiveElement;
+            newCohesiveElement.push_back( cohesiveNodes[0] );
+            newCohesiveElement.push_back( cohesiveNodes[1] );
+            newCohesiveElement.push_back( newNodesList[0] );
+            newCohesiveElement.push_back( newNodesList[1] );
+            cohesiveElements.push_back(newCohesiveElement);
 		}
 	}
 
+
+
 }
+
+
+
+
 
 void mesh_input::WriteCohesiveElements()
 {
