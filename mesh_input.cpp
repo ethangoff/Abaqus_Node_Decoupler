@@ -22,7 +22,7 @@
 #define VERBOSE 3
 
 unordered_map <uint16_t, uint16_t> mesh_input::EncounteredNodesTable;
-map <pair<uint16_t, uint16_t>, bool> mesh_input::EncounteredElementsTable;
+map <pair<uint16_t, uint16_t>, pair<uint16_t, uint16_t> > mesh_input::EncounteredEdgesTable;
 vector < vector<uint16_t> > mesh_input::cohesiveElements;
 
 char* itoa(int num, char* str, int base);
@@ -412,24 +412,33 @@ void mesh_input::ProcessElement(char* inputElementString, int numberOfNodes, cha
 
 
 	//Find the edges of the element - at the moment, this assumes linearity and 2 dimensions
+
     vector< pair<uint32_t, uint32_t> > edges;
     edges.reserve( NUMBER_OF_POSSIBLE_EDGES );
+    //The search for edges uses the original nodes list, fixing the search to a haystack
+    //  proportional to the number of original nodes
     CreateEdges(originalNodesList, &edges);
 
     //Check for shared edges in the element, creating cohesive elements
     for(int i=0; i<NUMBER_OF_POSSIBLE_EDGES; i++)
     {
+        pair<uint32_t,uint32_t> edgeInCurrentElement =  make_pair( EncounteredNodesTable[ edges[i].first ], EncounteredNodesTable[ edges[i].second ] );
         //If we haven't encoutered this edge before, make note of it
-        if( !EncounteredElementsTable[ edges[i] ] )
-            EncounteredElementsTable[ edges[i] ] = true;
+        if( EncounteredEdgesTable.find(edges[i]) == EncounteredEdgesTable.end() )
+            EncounteredEdgesTable[ edges[i] ] = edgeInCurrentElement;
         else    //If we have encountered the edge, create a new cohesive element
         {
+            //Retrieve the edge as it appeared in some previous element
+            pair<uint32_t,uint32_t> edgeInPreviousElement = EncounteredEdgesTable[ edges[i] ];
+
             //Create a cohesive element for later
             vector<uint16_t> newCohesiveElement;
-            newCohesiveElement.push_back( cohesiveNodes[0] );
-            newCohesiveElement.push_back( cohesiveNodes[1] );
-            newCohesiveElement.push_back( newNodesList[0] );
-            newCohesiveElement.push_back( newNodesList[1] );
+            newCohesiveElement.push_back( edgeInPreviousElement.first );
+            newCohesiveElement.push_back( edgeInPreviousElement.second );
+            newCohesiveElement.push_back( edgeInCurrentElement.first );
+            newCohesiveElement.push_back( edgeInCurrentElement.second );
+
+            EncounteredEdgesTable[ edges[i] ] = edgeInCurrentElement;
             cohesiveElements.push_back(newCohesiveElement);
 		}
 	}

@@ -58,7 +58,7 @@ class mesh_input
 		//	boolean values. As we add nodes, we'll set the boolean
 		//	to true, which will allow us to quickly later see if a node
 		//  has been encountered in the past.
-		static map <pair<uint16_t, uint16_t>, bool> EncounteredElementsTable;
+		static map <pair<uint16_t, uint16_t>, pair<uint16_t, uint16_t> > EncounteredEdgesTable;
 
 		static vector < vector<uint16_t> > cohesiveElements;
 
